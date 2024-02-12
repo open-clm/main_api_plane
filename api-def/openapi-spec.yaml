@@ -1,0 +1,1681 @@
+openapi: 3.0.0
+info:
+  title: OpenCLM API Layer v0.0.1
+  version: 0.0.1
+  description: |
+    TODO: Discuss with Sparsha on whether the return to POST, PATCH and GET should return the full object or empty. Currently only GET returns full object. \
+    Open CLM is a free platform to manage the lifecycle of contracts within an organization. There are numerous stages of contracting, during which various entities belonging to different teams need to edit, comment, and approve the contract. The Open CLM tool provides a platform to perform these tasks seamlessly with various stakeholders within and outside the company. It is a collaboration tool for contracting. \
+
+    The API layer serves as a controller and gateway for all the other microservices. It uses ORY Keto to perform authentication and authorization of requests coming from clients. 
+tags:
+  - name: Auth
+    description: Authentication related endpoints
+  - name: Organization
+    description: These are the OpenCLM user entity super groups. They are repository owners
+  - name: User
+    description: Operations related to user management within an organization
+  - name: Template
+    description: Endpoints related to template management within an organization.
+  - name: Contract
+    description: Endpoints related to contract management within an organization.
+
+
+
+
+paths:
+  /v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: 🔑 Logs in a user and returns a JWT token.
+      description: |
+        The client uses Basic authentication to exchange user credentials for a JWT token.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Login successful, JWT token returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    format: jwt
+                  expire_type:
+                    type: string
+                    enum:
+                      - hours
+                      - minutes
+                      - seconds
+                  token_type:
+                    type: string
+                    example: "bearer"
+                  expires_in:
+                    type: integer
+                    description: Time in expire_type until the token expires.
+        '401':
+          description: Authentication failed.
+
+  /v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: 🔑 Refreshes the JWT token.
+      description: |
+        The client can refresh the JWT token using the refresh token obtained after login.
+      parameters:
+        - in: header
+          name: oclm-access-token
+          required: true
+          schema:
+            type: string
+          description: Access Token containing user and team details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                access_token:
+                  type: string
+                  format: jwt
+              required:
+                - refresh_token
+      responses:
+        '200':
+          description: JWT token refreshed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    format: jwt
+                  expire_type:
+                    type: string
+                    enum:
+                      - hours
+                      - minutes
+                      - seconds
+                  token_type:
+                    type: string
+                    example: "bearer"
+                  expires_in:
+                    type: integer
+                    description: Time in expire_type until the token expires.
+        '401':
+          description: Invalid or expired refresh token.
+
+  /v1/organization/:
+    post:
+      summary: 🏢 Create a new organization
+      operationId: createOrganization
+      tags:
+        - Organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationRequest'
+      responses:
+        '200':
+          description: Organization created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organization_id:
+                    type: string
+                  status_code:
+                    type: integer
+      description: |
+        There \
+        notes will be a list of comments that the user can add
+
+  /v1/organization/{org_id}:
+    patch:
+      summary: 🏢 Update an organization by ID
+      operationId: updateOrganizationById
+      tags:
+        - Organization
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrganizationRequest'
+      responses:
+        '200':
+          description: Organization updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_code:
+                    type: integer
+      description: any of the items can be updated by just making a PATCH call instead of a PUT call
+    
+    get:
+      summary: 🏢 Retrieve an organization by ID
+      operationId: getOrganizationById
+      tags:
+        - Organization
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Organization retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organization:
+                    $ref: '#/components/schemas/OrganizationObject'
+                  status_code:
+                    type: integer
+      description: response is an organization type and a status code
+    
+    delete:
+      summary: 🏢  an organization by ID
+      operationId: deleteOrganizationById
+      tags:
+        - Organization
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Organization deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_code:
+                    type: integer
+  /v1/organization/{orgId}/users:
+    post:
+      tags:
+        - User
+      summary: 👤 Create a new user within an organization
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created successfully
+    
+    get:
+      tags:
+        - User
+      summary: 👤 Get all users within an organization
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+      responses:
+        '200':
+          description: A list of users within the organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /v1/organization/{orgId}/users/{userId}:
+    get:
+      tags:
+        - User
+      summary: 👤 Get a user by ID within an organization
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the user
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    
+    patch:
+      tags:
+        - User
+      summary: 👤 Update a user by ID within an organization
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated successfully
+    
+    delete:
+      tags:
+        - User
+      summary: 👤 Delete a user by ID within an organization
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the user
+      responses:
+        '204':
+          description: User deleted successfully
+  /v1/organization/policies:
+    post:
+      tags:
+        - User
+      summary: 📑 Create a new policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Policy'
+      responses:
+        '201':
+          description: Policy created successfully
+
+  /v1/organization/policies/{policyId}:
+    get:
+      tags:
+        - User
+      summary: 📑 Get a policy by ID
+      parameters:
+        - in: path
+          name: policyId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the policy
+      responses:
+        '200':
+          description: Policy retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Policy'
+
+    patch:
+      tags:
+        - User
+      summary: 📑 Update a policy by ID
+      parameters:
+        - in: path
+          name: policyId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Policy'
+      responses:
+        '200':
+          description: Policy updated successfully
+
+    delete:
+      tags:
+        - User
+      summary: 📑 Delete a policy by ID
+      parameters:
+        - in: path
+          name: policyId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the policy
+      responses:
+        '204':
+          description: Policy deleted successfully
+
+  /v1/organization/{orgId}/users/{userId}/attachPolicy:
+    post:
+      tags:
+        - User
+      summary: 📑 Attach a policy to a user
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                policyId:
+                  type: string
+                  description: Unique identifier of the policy to attach
+              required:
+                - policyId
+      responses:
+        '200':
+          description: Policy attached successfully
+
+  /v1/organization/{orgId}/users/{userId}/detachPolicy:
+    post:
+      tags:
+        - User
+      summary: 📑 Detach a policy from a user
+      parameters:
+        - in: path
+          name: orgId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                policyId:
+                  type: string
+                  description: Unique identifier of the policy to detach
+              required:
+                - policyId
+      responses:
+        '200':
+          description: Policy detached successfully
+
+  /organization/{org_id}/template:
+    post:
+      tags:
+        - Template
+      summary: 📜 Create a new template
+      description: |
+        Create a template with placeholders (fill in the blanks) that can be filled when making a contract. These placeholders are optionally annotated to create a form on the contract creation side.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateRequest'
+      responses:
+        '201':
+          description: Template created successfully
+
+    get:
+      tags:
+        - Template
+      summary: 📜 Retrieve all templates with optional search
+      description: |
+        Retrieves a list of all templates, with optional query parameters for filtering based on key-value pairs and supports pagination. A minimal response can be specified to return a subset of template attributes.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: query
+          name: queries
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+                condition:
+                  type: string
+                  enum: [equal, contains, not]
+          description: Filtering criteria for templates
+        - in: query
+          name: minimal_response
+          schema:
+            type: array
+            items:
+              type: string
+          description: List of keys to include in the response
+      responses:
+        '200':
+          description: A list of templates
+
+  /organization/{org_id}/template/{template_id}:
+    patch:
+      tags:
+        - Template
+      summary: 📜 Update a template by ID
+      description: |
+        Update the specified attributes of a template by its ID. The fitb_regex is not updated as it is complex and unnecessary for the update operation.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Template updated successfully
+
+    get:
+      tags:
+        - Template
+      summary: 📜 Get a template by ID
+      description: Retrieve a specific template by its ID. Total fitb is also calculated by the backend and maintained.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the template
+      responses:
+        '200':
+          description: Template retrieved successfully
+
+    delete:
+      tags:
+        - Template
+      summary: 📜 Delete a template by ID
+      description: Remove a template from the organization by its ID.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the template
+      responses:
+        '204':
+          description: Template deleted successfully
+  /organization/{org_id}/template/{template_id}/decide:
+    post:
+      tags:
+        - Template
+      summary: 📜 Decide on a template's status
+      description: |
+        Make a decision on a template's status, such as approving or rejecting it, optionally including a comment.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision:
+                  type: string
+                  enum: [approved, rejected, pending]
+                comment:
+                  type: string
+                  nullable: true
+              required:
+                - decision
+      responses:
+        '200':
+          description: Template status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_code:
+                    type: integer
+
+  /organization/{org_id}/template/{template_id}/execute:
+    post:
+      tags:
+        - Template
+      summary: 📜 Create a contract from a template
+      description: |
+        Creates a contract from a template with the provided inputs. The fitb_inputs array should match the number of fill in the blanks which exist for a template. Makes a self call to create contract.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: template_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fitb_inputs:
+                  type: array
+                  items:
+                    type: string
+                parties:
+                  type: array
+                  items:
+                    type: string
+                status:
+                  type: string
+                  enum: [active, inactive, pending]
+                approval_required:
+                  type: boolean
+                notes:
+                  type: array
+                  items:
+                    type: string
+                  nullable: true
+                metadata:
+                  type: object
+                  additionalProperties: true
+                approvals:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      response:
+                        type: string
+                        enum: [approved, rejected, pending]
+                      note:
+                        type: string
+                    required:
+                      - name
+                      - response
+                  nullable: true
+              required:
+                - fitb_inputs
+                - parties
+                - status
+                - approval_required
+      responses:
+        '200':
+          description: Contract created from template successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                  status_code:
+                    type: integer
+
+  /organization/{org_id}/contract/:
+    post:
+      tags:
+        - Contract
+      summary: "🤝 Create a new contract"
+      description: >
+        Initiates the creation of a new contract within the organization. The approvals part will be handled by the git pr mechanism, but details on the approver are needed.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractRequest'
+      responses:
+        '201':
+          description: Contract successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                  status_code:
+                    type: integer
+    get:
+      tags:
+        - Contract
+      summary: "🤝 Retrieve all contracts with search"
+      description: >
+        Fetches a list of all contracts within the organization, with support for query-based filtering and pagination. The minimal response option allows for a tailored response with selected keys.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: query
+          name: queries
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+                condition:
+                  type: string
+                  enum: [equal, contains, not]
+      responses:
+        '200':
+          description: List of contracts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contracts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContractObject'
+                  status_code:
+                    type: integer
+
+  /organization/{org_id}/contract/{contract_id}:
+    patch:
+      tags:
+        - Contract
+      summary: "🤝 Update a contract by ID"
+      description: >
+        Updates a specified contract. The full clause list must be provided if edits are made; individual clauses are not edited at this time.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContractRequest'
+      responses:
+        '200':
+          description: Contract updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_code:
+                    type: integer
+
+    get:
+      tags:
+        - Contract
+      summary: "🤝 Get a contract by ID"
+      description: >
+        Retrieves the details of a specific contract by its unique identifier.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+      responses:
+        '200':
+          description: Contract details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractObject'
+
+    delete:
+      tags:
+        - Contract
+      summary: "🤝 Delete a contract by ID"
+      description: >
+        Removes a contract from the organization based on its unique identifier.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+      responses:
+        '204':
+          description: Contract deleted successfully
+
+  /v1/organization/{org_id}/contract/{contract_id}/archive:
+    post:
+      tags:
+        - Contract
+      summary: "🤝 Archive a contract"
+      description: >
+        Moves a contract to the archived directory
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+      responses:
+        '204':
+          description: Contract archived successfully
+  /organization/{org_id}/contract/{contract_id}/change_order:
+    post:
+      tags:
+        - Contract
+      summary: "🐛 Initiate a change order process"
+      description: >
+        Starts a change order process for a contract. This includes capturing potential changes, clauses, and handling approvals from external entities if required.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeOrderRequest'
+      responses:
+        '201':
+          description: Change order process initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  change_order_id:
+                    type: string
+                  status_code:
+                    type: integer
+
+  /organization/{org_id}/contract/{contract_id}/change_order/{change_order_id}:
+    patch:
+      tags:
+        - Contract
+      summary: "🐛 Update a change order"
+      description: >
+        Updates an existing change order. Includes modifying the clauses, status, notes, and handling approvals, particularly from external entities.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+        - in: path
+          name: change_order_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the change order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateChangeOrderRequest'
+      responses:
+        '200':
+          description: Change order updated successfully
+
+    get:
+      tags:
+        - Contract
+      summary: "🐛 Retrieve a change order"
+      description: >
+        Fetches the details of a specific change order by its ID, including the heading, clauses, and any associated notes and approvals.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+        - in: path
+          name: change_order_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the change order
+      responses:
+        '200':
+          description: Change order retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangeOrderObject'
+
+    delete:
+      tags:
+        - Contract
+      summary: "🐛 Delete a change order"
+      description: >
+        Removes a change order from the system. This action cannot be undone.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+        - in: path
+          name: change_order_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the change order
+      responses:
+        '204':
+          description: Change order deleted successfully
+  
+  /organization/{org_id}/contract/{contract_id}/change_order/{change_order_id}/decide:
+    post:
+      tags:
+        - Contract
+      summary: 🐛 Decide on a change order's status
+      description: |
+        Make a decision on a change order's status, such as approving or rejecting it, optionally including a comment.
+      parameters:
+        - in: path
+          name: org_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the organization
+        - in: path
+          name: contract_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the contract
+        - in: path
+          name: change_order_id
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the change order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision:
+                  type: string
+                  enum: [approved, rejected, pending]
+                comment:
+                  type: string
+                  nullable: true
+              required:
+                - decision
+      responses:
+        '200':
+          description: Template status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status_code:
+                    type: integer
+
+
+
+# Additional endpoints for /organization/{org_id}/template will follow a similar structure
+# Definitions for enums, types, and common properties can be added under the 'components' section for reuse
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  schemas:
+    OrganizationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - paid
+            - free
+            - trial
+        status:
+          type: string
+          enum:
+            - demo
+            - onboarding
+            - live
+        notes:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - type
+        - status
+    UpdateOrganizationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - paid
+            - free
+            - trial
+        status:
+          type: string
+          enum:
+            - demo
+            - onboarding
+            - live
+        notes:
+          type: array
+          items:
+            type: string
+    OrganizationObject:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - paid
+            - free
+            - trial
+        status:
+          type: string
+          enum:
+            - demo
+            - onboarding
+            - live
+        notes:
+          type: array
+          items:
+            type: string
+        created_on:
+          type: string # Assuming this is a string representation of a date
+          format: date-time # If it's in a date-time format
+          readOnly: true
+        updated_on:
+          type: string # Assuming this is a string representation of a date
+          format: date-time # If it's in a date-time format
+          readOnly: true
+        created_by:
+          type: string # Assuming this is a string, use the appropriate type if it's a structured object
+        repository_link:
+          type: string
+          readOnly: true
+      required:
+        - name
+        - type
+        - status
+    User:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Unique identifier for the user
+        email:
+          type: string
+          format: email
+          description: User's email address
+        firstName:
+          type: string
+          description: User's first name
+        lastName:
+          type: string
+          description: User's last name
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Policy'
+      required:
+        - email
+        - firstName
+        - lastName
+    Policy:
+      type: object
+      properties:
+        policyId:
+          type: string
+          description: Unique identifier for the policy
+        namespace:
+          type: string
+          description: Policy namespace
+        object:
+          type: string
+          description: Policy object
+        relation:
+          type: string
+          description: Policy relation
+        roles:
+          type: array
+          items:
+            type: string
+          description: Roles assigned by the policy
+      required:
+        - namespace
+        - object
+        - relation
+        - roles
+    TemplateRequest:
+      type: object
+      properties:
+        heading:
+          type: string
+        body:
+          type: string
+        fitb_regex:
+          type: string
+        needs_approval:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - draft
+            - pending
+            - approved
+            - rejected
+            - live
+        fitb_annotations:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        created_by:
+          type: string
+          nullable: true # Indicates that this property is optional
+      required:
+        - heading
+        - body
+        - fitb_regex
+        - needs_approval
+        - status
+    UpdateTemplateRequest:
+      type: object
+      properties:
+        heading:
+          type: string
+        body:
+          type: string
+        fitb_regex:
+          type: string
+        needs_approval:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - draft
+            - pending
+            - approved
+            - rejected
+            - live
+        fitb_annotations:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        created_by:
+          type: string
+          nullable: true # Indicates that this property is optional
+    TemplateObject:
+      type: object
+      properties:
+        heading:
+          type: string
+        body:
+          type: string
+        fitb_regex:
+          type: string
+        total_fitb:
+          type: integer
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        needs_approval:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - draft
+            - pending
+            - approved
+            - rejected
+            - live
+        fitb_annotations:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        created_by:
+          type: string
+          nullable: true # Indicates that this property is optional
+        status_comment:
+          type: string
+          nullable: true # Indicates that this property is optional
+        metadata:
+          type: object
+          additionalProperties: true # Allows any structure of JSON object
+        created_on:
+          type: string
+          format: date-time
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        updated_on:
+          type: string
+          format: date-time
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+      required:
+        - heading
+        - body
+        - fitb_regex
+        - needs_approval
+        - status
+    ContractRequest:
+      type: object
+      properties:
+        heading:
+          type: string
+        clause_list:
+          type: array
+          items:
+            type: string
+        parties:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, pending, approved, rejected, live] # replace with actual enum values
+        approval_required:
+          type: boolean
+        notes:
+          type: array
+          items:
+            type: string
+          nullable: true # Indicates that this property is optional
+        approvals:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [required, approved, reject, edit] # replace with actual enum values
+              note:
+                type: string
+            required:
+              - name
+              - response
+          nullable: true # Indicates that this property is optional
+        created_by:
+          type: string
+          nullable: true # Indicates that this property is optional
+      required:
+        - heading
+        - clause_list
+        - parties
+        - status
+        - approval_required
+    
+    UpdateContractRequest:
+      type: object
+      properties:
+        heading:
+          type: string
+        clause_list:
+          type: array
+          items:
+            type: string
+        parties:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, pending, approved, rejected, live] # replace with actual enum values
+        approval_required:
+          type: boolean
+        notes:
+          type: array
+          items:
+            type: string
+          nullable: true # Indicates that this property is optional
+        approvals:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: [required, approved, reject, edit] # replace with actual enum values
+              note:
+                type: string
+            required:
+              - name
+              - response
+          nullable: true # Indicates that this property is optional
+        created_by:
+          type: string
+          nullable: true # Indicates that this property is optional
+
+    ContractObject:
+      type: object
+      properties:
+        heading:
+          type: string
+        clause_list:
+          type: array
+          items:
+            type: string
+        parties:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, pending, approved, rejected, live] # replace with actual enum values
+        approval_required:
+          type: boolean
+        notes:
+          type: array
+          items:
+            type: string
+          nullable: true # Indicates that this property is optional
+        approvals:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              response:
+                type: string
+                enum: [required, approved, reject, edit] # replace with actual enum values
+              note:
+                type: string
+            required:
+              - name
+              - response
+          nullable: true # Indicates that this property is optional
+        total_change_orders:
+          type: integer
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        metadata:
+          type: object
+          additionalProperties: true # Allows any structure of JSON object
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        created_by:
+          type: string
+          nullable: true # Indicates that this property is optional
+      required:
+        - heading
+        - clause_list
+        - parties
+        - status
+        - approval_required
+    ChangeOrderRequest:
+      type: object
+      properties:
+        heading:
+          type: string
+        clause_list:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, pending, approved, rejected, live] # replace with actual enum values
+        notes:
+          type: array
+          items:
+            type: string
+          nullable: true # Indicates that this property is optional
+        approvals:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              response:
+                type: string
+                enum: [required, approved, reject, edit] # replace with actual enum values
+              note:
+                type: string
+              external:
+                type: boolean
+                nullable: true # Indicates that this property is optional
+              external_email:
+                type: string
+                nullable: true # Indicates that this property is optional
+            required:
+              - name
+              - response
+      required:
+        - heading
+        - clause_list
+        - status
+    UpdateChangeOrderRequest:
+      type: object
+      properties:
+        heading:
+          type: string
+        clause_list:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [draft, pending, approved, rejected, live] # replace with actual enum values
+        notes:
+          type: array
+          items:
+            type: string
+          nullable: true # Indicates that this property is optional
+        approvals:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              response:
+                type: string
+                enum: [required, approved, reject, edit] # replace with actual enum values
+              note:
+                type: string
+              external:
+                type: boolean
+                nullable: true # Indicates that this property is optional
+              external_email:
+                type: string
+                nullable: true # Indicates that this property is optional
+            required:
+              - name
+              - response
+      required:
+        - heading
+        - clause_list
+        - status
+    ChangeOrderObject:
+      type: object
+      properties:
+        heading:
+          type: string
+        clause_list:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [enum1, enum2] # replace with actual enum values
+        notes:
+          type: array
+          items:
+            type: string
+          nullable: true # Indicates that this property is optional
+        approvals:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              response:
+                type: string
+                enum: [approvalResponse1, approvalResponse2] # replace with actual enum values
+              note:
+                type: string
+              external:
+                type: boolean
+                nullable: true # Indicates that this property is optional
+              external_email:
+                type: string
+                nullable: true # Indicates that this property is optional
+            required:
+              - name
+              - response
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        created_by:
+          type: string
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+        metadata:
+          type: object
+          additionalProperties: true # Allows any structure of JSON object
+          readOnly: true # Indicates that this property is set by the server and cannot be written to by the client
+      required:
+        - heading
+        - clause_list
+        - status
+security:
+  - basicAuth: []
