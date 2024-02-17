@@ -564,8 +564,8 @@ paths:
     delete:
       tags:
         - Clauses
-      summary: Delete a clause
-      description: ✒️ Deletes a specific clause.
+      summary: ✒️ Delete a clause
+      description: Deletes a specific clause.
       operationId: deleteClause
       parameters:
         - name: organization-id
@@ -667,7 +667,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TemplateRequest'
+              $ref: '#/components/schemas/Template'
       responses:
         '201':
           description: Template created successfully
@@ -1432,41 +1432,191 @@ components:
     Clause:
       type: object
       properties:
+        clause_id:
+          type: string
+          description: Machine generated unique identifier for the clause.
+          readOnly: true
         clause_body:
           type: string
+          description: The main content of the clause.
         clause_metadata:
-          type: string
+          type: array
+          description: Optional metadata for the clause.
+          items:
+            type: object
+            additionalProperties:
+              type: string
+        clause_tags:
+          type: array
+          description: Optional tags for categorizing or identifying the clause.
+          items:
+            type: string
+        fitb_clause:
+          type: boolean
+          description: Indicates if the clause contains fill in the blanks.
         fitb_regex:
           type: string
-        fitb_present:
-          type: boolean
-        needs_approval:
-          type: boolean
-        status:
-          type: string
-          enum:
-            - draft
-            - pending
-            - approved
-            - rejected
-            - live
+          description: The regex pattern to validate fill in the blanks, required if fitb_clause is true.
+          nullable: true
         fitb_annotations:
           type: array
+          description: Optional annotations for the fill in the blanks.
           items:
             type: string
-        notes:
+        total_fitb:
+          type: integer
+          description: Machine generated count of fill in the blanks within the clause.
+          readOnly: true
+        approval_required:
+          type: boolean
+          description: Indicates if the clause requires approval.
+        recommended_reviewers:
           type: array
+          description: Optional list of recommended reviewers' user IDs.
           items:
             type: string
+        reviews:
+          type: array
+          description: List of reviews for the clause.
+          items:
+            $ref: '#/components/schemas/Review'
+        pass_status:
+          type: boolean
+          description: Machine generated pass status based on reviews.
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the clause was created.
+          readOnly: true
+        last_updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of the clause's last update.
+          readOnly: true
         created_by:
           type: string
-          nullable: true # Indicates that this property is optional
+          description: User ID of the clause creator.
+          readOnly: true
+        object_identity:
+          type: string
+          description: Machine generated IAM identity for the clause.
+          readOnly: true
       required:
-        - heading
-        - body
-        - needs_approval
-        - status
-        - fitb_present
+        - clause_body
+        - fitb_clause
+        - approval_required
+    Review:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: The ID of the user who performed the review.
+        decision:
+          type: string
+          description: The decision made by the reviewer.
+      required:
+        - user_id
+        - decision
+    Template:
+      type: object
+      properties:
+        template_heading:
+          type: string
+          description: The heading or title of the template.
+        template_id:
+          type: string
+          description: Machine generated unique identifier for the template.
+          readOnly: true
+        template_clauses:
+          type: array
+          description: An array of clauses included in the template.
+          items:
+            $ref: '#/components/schemas/TemplateClause'
+        template_metadata:
+          type: array
+          description: Optional metadata associated with the template.
+          items:
+            type: object
+            additionalProperties:
+              type: string
+        template_tags:
+          type: array
+          description: Optional tags for categorizing or identifying the template.
+          items:
+            type: string
+        fitb_clause:
+          type: boolean
+          description: Indicates if the template contains fill in the blanks.
+        fitb_regex:
+          type: string
+          description: The regex pattern to validate fill in the blanks. Required if fitb_clause is true.
+          nullable: true
+        fitb_annotations:
+          type: array
+          description: Optional annotations for the fill in the blanks in the template.
+          items:
+            type: string
+        total_fitb:
+          type: integer
+          description: Machine generated count of fill in the blanks within the template.
+          readOnly: true
+        approval_required:
+          type: boolean
+          description: Indicates if the template requires approval.
+        recommended_reviewers:
+          type: array
+          description: Optional list of recommended reviewers' user IDs.
+          items:
+            type: string
+        reviews:
+          type: array
+          description: List of reviews for the template.
+          items:
+            $ref: '#/components/schemas/Review'
+        pass_status:
+          type: boolean
+          description: Machine generated pass status based on reviews.
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the template was created.
+          readOnly: true
+        last_updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of the template's last update.
+          readOnly: true
+        created_by:
+          type: string
+          description: User ID of the template creator.
+          readOnly: true
+        object_identity:
+          type: string
+          description: Machine generated IAM identity for the template.
+          readOnly: true
+      required:
+        - template_heading
+        - template_clauses
+        - fitb_clause
+        - approval_required
+    TemplateClause:
+      type: object
+      properties:
+        clause_id:
+          type: string
+          description: Unique identifier for the clause, optional if the clause is old.
+          nullable: true
+        clause_type:
+          type: string
+          description: Indicates if the clause is old or new.
+          enum: [Old, New]
+          nullable: true
+        clause_body:
+          type: string
+          description: The main content of the clause, required if the clause is new.
+          nullable: true
     TemplateRequest:
       type: object
       properties:
