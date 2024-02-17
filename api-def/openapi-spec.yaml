@@ -14,6 +14,8 @@ tags:
     description: These are the OpenCLM user entity super groups. They are repository owners
   - name: User
     description: Operations related to user management within an organization
+  - name: Clauses
+    description: Clauses section which would be the atomic unit of construction
   - name: Template
     description: Endpoints related to template management within an organization.
   - name: Contract
@@ -480,6 +482,171 @@ paths:
       responses:
         '200':
           description: Policy detached successfully
+          
+  /organizations/{organization-id}/clauses:
+    post:
+      tags:
+        - Clauses
+      summary: ✒️ Create a clause
+      description: Creates a new clause within the specified organization.
+      operationId: createClause
+      parameters:
+        - name: organization-id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the organization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Clause'
+      responses:
+        '201':
+          description: Successfully created the clause.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clause'
+  /organizations/{organization-id}/clauses/{clause-id}:
+    get:
+      tags:
+        - Clauses
+      summary: ✒️ Get a clause
+      description: Retrieves a specific clause by its ID.
+      operationId: getClause
+      parameters:
+        - name: organization-id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: clause-id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A specific clause.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Clause'
+    put:
+      tags:
+        - Clauses
+      summary: ✒️ Update a clause
+      description: Updates an existing clause.
+      operationId: updateClause
+      parameters:
+        - name: organization-id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: clause-id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Clause'
+      responses:
+        '200':
+          description: Successfully updated the clause.
+    delete:
+      tags:
+        - Clauses
+      summary: Delete a clause
+      description: ✒️ Deletes a specific clause.
+      operationId: deleteClause
+      parameters:
+        - name: organization-id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: clause-id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successfully deleted the clause.
+  /organizations/{organization-id}/clauses/search:
+    post:
+      tags:
+        - Clauses
+      summary: ✒️ Search for clauses
+      description: Searches for clauses based on a provided query.
+      operationId: searchClauses
+      parameters:
+        - name: organization-id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: object
+                  description: A JSON object representing the search criteria.
+      responses:
+        '200':
+          description: Search results.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Clause'
+  /organizations/{organization-id}/clauses/metadata/search:
+    post:
+      tags:
+        - Clauses
+      summary: ✒️ Search for clause metadata
+      description:  Searches for clause metadata based on a provided query.
+      operationId: searchClauseMetadata
+      parameters:
+        - name: organization-id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: object
+                  description: A JSON object representing the search criteria for metadata.
+      responses:
+        '200':
+          description: Search results for metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: A JSON object representing the search criteria for metadata.
 
   /organization/{org_id}/template:
     post:
@@ -1262,6 +1429,44 @@ components:
         - object
         - relation
         - roles
+    Clause:
+      type: object
+      properties:
+        clause_body:
+          type: string
+        clause_metadata:
+          type: string
+        fitb_regex:
+          type: string
+        fitb_present:
+          type: boolean
+        needs_approval:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - draft
+            - pending
+            - approved
+            - rejected
+            - live
+        fitb_annotations:
+          type: array
+          items:
+            type: string
+        notes:
+          type: array
+          items:
+            type: string
+        created_by:
+          type: string
+          nullable: true # Indicates that this property is optional
+      required:
+        - heading
+        - body
+        - needs_approval
+        - status
+        - fitb_present
     TemplateRequest:
       type: object
       properties:
