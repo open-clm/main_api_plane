@@ -3,7 +3,14 @@ The main API plane through which the UI will be communicating to the backend wit
 Following are the core feautures which are planned for each release:
 
 ## Prototype 0: v0.0.x
-1. Lifecycle managament for Contracts:    [Figma] (✓)
+### 1. Lifecycle managament for Contracts:    [Figma] (✓)
+- create
+- delete
+- update
+- upload
+- get
+- search by title
+- search by content
 2. Lifecycle management for Templates:    [Figma] (✓)
 3. Lifecycle management for Drafts:       [Figma] (✓)
 4. Lifecycle management for Clausebooks
