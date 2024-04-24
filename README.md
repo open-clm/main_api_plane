@@ -5,7 +5,7 @@ Following are the core feautures which are planned for each release:
 ## Prototype 0: v0.0.x
 1. Lifecycle managament for Contracts:    [Figma] (✓)
 2. Lifecycle management for Templates:    [Figma] (✓)
-3. Lifecycle management for Drafts
+3. Lifecycle management for Drafts:       [Figma] (✓)
 4. Lifecycle management for Clausebooks
 5. Discussions on any document:           [Figma] (✓)
 6. Review any document:                   [Figma] (✓)
