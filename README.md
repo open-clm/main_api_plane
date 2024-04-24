@@ -16,10 +16,13 @@ Following are the core feautures which are planned for each release:
    
 
 ## Prototype 1: v0.x.x
-1. Lifecycle management for support tickets
-2. Searching and sorting
-3. Help
-4. Tutorials
-5. Hardening
-6. Efficiency
-7. Resiliency and SLA
+1. Lifecycle management for Support Tickets
+2. Lifecycle management for Plugins
+3. Creating the plugin marketplace
+4. Improved notification management
+5. Searching and sorting
+6. Help
+7. Tutorials
+8. Hardening
+9. Efficiency
+10. Resiliency and SLA
